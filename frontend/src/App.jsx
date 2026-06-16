@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import PoseTracker, { EXERCISES } from "./PoseTracker.jsx";
 
 export default function App() {
@@ -7,7 +7,17 @@ export default function App() {
     "Move for a few seconds, then hit \"Get AI feedback\" to see how the analysis works."
   );
   const [loading, setLoading] = useState(false);
+  const [repCount, setRepCount] = useState(0);
   const trackerRef = useRef(null);
+
+  // Poll rep count from the tracker every 200ms
+  useEffect(() => {
+    const id = setInterval(() => {
+      const count = trackerRef.current?.getRepCount?.() ?? 0;
+      setRepCount(count);
+    }, 200);
+    return () => clearInterval(id);
+  }, []);
 
   async function getFeedback() {
     const summary = trackerRef.current?.getSummary();
@@ -37,9 +47,9 @@ export default function App() {
   return (
     <div className="min-h-screen flex flex-col items-center px-4 py-10 gap-6">
       <header className="text-center max-w-xl">
-        <h1 className="font-[var(--font-display)] text-3xl tracking-tight">Motion Coach</h1>
+        <h1 className="font-[var(--font-display)] text-3xl tracking-tight">FormFix</h1>
         <p className="text-sm text-[var(--color-text)]/60 mt-1">
-          Live pose tracking in the browser + AI feedback on technique.
+          Real-time form coaching from your webcam.
         </p>
       </header>
 
@@ -60,6 +70,11 @@ export default function App() {
       </div>
 
       <PoseTracker ref={trackerRef} exercise={exercise} />
+
+      <div className="flex items-center gap-2 text-sm">
+        <span className="text-[var(--color-ink)]/50">Reps:</span>
+        <span className="font-[var(--font-display)] text-2xl text-[var(--color-accent)]">{repCount}</span>
+      </div>
 
       <button
         onClick={getFeedback}

@@ -13,8 +13,10 @@ import { PoseLandmarker, FilesetResolver, DrawingUtils } from "@mediapipe/tasks-
  * gesture-control project instead of a fitness one — same overall structure.
  */
 const EXERCISES = {
-  squat: { label: "Squat (knee angle)", points: [23, 25, 27] }, // hip-knee-ankle
-  bicepCurl: { label: "Bicep curl (elbow angle)", points: [11, 13, 15] }, // shoulder-elbow-wrist
+  squat: { label: "Squat (knee angle)", points: [23, 25, 27] },
+  bicepCurl: { label: "Bicep curl (elbow angle)", points: [11, 13, 15] },
+  lunge: { label: "Lunge (front knee)", points: [23, 25, 27] },
+  shoulderPress: { label: "Shoulder press (elbow)", points: [11, 13, 15] },
 };
 
 function angleBetween(a, b, c) {
@@ -33,11 +35,23 @@ const PoseTracker = forwardRef(function PoseTracker({ exercise = "squat" }, ref)
   const canvasRef = useRef(null);
   const landmarkerRef = useRef(null);
   const historyRef = useRef([]); // rolling buffer of { t, angle }
+  const repCountRef = useRef(0); // rep counter
+  const repPhaseRef = useRef("up"); // "up" | "down" — tracks cycle phase
   const [status, setStatus] = useState("loading"); // loading | ready | error
   const [liveAngle, setLiveAngle] = useState(null);
 
-  // Expose a snapshot of recent angle data to the parent for the
-  // "Get AI Feedback" call.
+  // Rep counter: a full rep = angle crosses below 100° (down) then back above 140° (up)
+  function trackRep(angle) {
+    if (angle == null) return;
+    if (repPhaseRef.current === "up" && angle < 100) {
+      repPhaseRef.current = "down";
+    } else if (repPhaseRef.current === "down" && angle > 140) {
+      repPhaseRef.current = "up";
+      repCountRef.current += 1;
+    }
+  }
+
+  // Expose a snapshot of recent angle data and rep count to the parent.
   useImperativeHandle(ref, () => ({
     getSummary() {
       const angles = historyRef.current.map((p) => p.angle).filter((a) => a != null);
@@ -48,7 +62,11 @@ const PoseTracker = forwardRef(function PoseTracker({ exercise = "squat" }, ref)
         min: Math.min(...angles),
         max: Math.max(...angles),
         avg: angles.reduce((s, a) => s + a, 0) / angles.length,
+        reps: repCountRef.current,
       };
+    },
+    getRepCount() {
+      return repCountRef.current;
     },
   }));
 
@@ -110,6 +128,7 @@ const PoseTracker = forwardRef(function PoseTracker({ exercise = "squat" }, ref)
           const [ia, ib, ic] = EXERCISES[exercise].points;
           const angle = angleBetween(lm[ia], lm[ib], lm[ic]);
           setLiveAngle(angle);
+          trackRep(angle);
 
           const now = performance.now();
           historyRef.current.push({ t: now, angle });
