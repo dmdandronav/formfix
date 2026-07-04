@@ -39,6 +39,8 @@ MODEL = os.environ.get("MODEL_NAME", "gpt-4o-mini")
 REFERENCE_RANGES = {
     "squat": {"good_min": 70, "good_max": 100, "note": "a good squat brings the knee angle down to roughly 70-100°"},
     "bicepCurl": {"good_min": 30, "good_max": 160, "note": "a full curl rep should move the elbow angle from ~160° (extended) to ~30° (flexed)"},
+    "lunge": {"good_min": 80, "good_max": 100, "note": "a proper lunge brings the front knee to about 80-100°"},
+    "shoulderPress": {"good_min": 160, "good_max": 180, "note": "at full extension the elbow should be close to straight (160-180°)"},
 }
 
 
